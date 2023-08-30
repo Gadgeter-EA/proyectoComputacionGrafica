@@ -1,0 +1,10 @@
+{
+  "CameraPosition": [ 1.0, 2.0, 3.0 ],
+  "PointsToRender": {
+    "1": [ 0, 2.0, 0 ],
+    "2": [ 2.0, 2.0, -10 ]
+  },
+  "UDirectorVector": [ -0.94, 0, 0.31 ],
+  "VDirectionVector": [ 0, 1, 0 ],
+  "WDirectionVector": [ 0.31, 0, 0.94 ]
+}
