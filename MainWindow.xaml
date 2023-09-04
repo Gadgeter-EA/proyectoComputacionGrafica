@@ -5,8 +5,37 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Tarea2"
         mc:Ignorable="d"
-        Title="Tarea2" Height="1000" Width="1000" Loaded="Window_Loaded">
-    <Canvas x:Name="Device" Background="Black" Height="950" Width="950">
-        
-    </Canvas>
+        Title="Tarea2" Height="1000" Width="1000
+        " Loaded="Window_Loaded">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <Canvas x:Name="Device" Grid.Column="0" Background="Black"  Width="750" Height="750">
+        </Canvas>
+
+        <StackPanel Grid.Column="1" Orientation="Vertical">
+            
+            <Label Content="Controles de la cámara" FontWeight="Bold" FontSize="14" Width="168"/>
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="Up" Content="⬆️" Width="35" Margin="1" Grid.Row="0" Grid.ColumnSpan="2" FontSize="24" Click="Up_Click"/>
+                <Button x:Name="Left" Content="⬅️" Width="35" Margin="1" Grid.Row="1" Grid.Column="0" FontSize="24" Click="Left_Click"/>
+                <Button x:Name="Right" Content="➡️" Width="35" Margin="1" Grid.Row="1" Grid.Column="1" FontSize="24" Click="Right_Click"/>
+                <Button x:Name="Down" Content="⬇️" Width="35" Margin="1" Grid.Row="2" Grid.ColumnSpan="2" FontSize="24" Click="Down_Click"/>
+            </Grid>
+        </StackPanel>
+    </Grid>
 </Window>

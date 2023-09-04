@@ -76,9 +76,9 @@ namespace Tarea2
 
            if (projectedPoints.Count > 0)
            {
-                foreach (Vector<double> projectePoints in projectedPoints) 
+                foreach (Vector<double> projectedPoint in projectedPoints) 
                 {
-                    var (x, y) = GetDevicePointFromProjection(projectePoints);
+                    var (x, y) = GetDevicePointFromProjection(projectedPoint);
 
                     Rectangle pixelToDraw = new Rectangle{ Fill = Brushes.White, Width = 1, Height = 1};
 
@@ -87,7 +87,31 @@ namespace Tarea2
                     Device.Children.Add(pixelToDraw);
                 }
                 
-            }
+           }
+        }
+
+        private void Up_Click(object sender, RoutedEventArgs e)
+        {
+            renderData.CameraPosition[1] = renderData.CameraPosition[1] + 1;
+            ReExecuteRenderPipeline();
+        }
+
+        private void Left_Click(object sender, RoutedEventArgs e)
+        {
+            renderData.CameraPosition[0] = renderData.CameraPosition[0] - 1;
+            ReExecuteRenderPipeline();
+        }
+
+        private void Right_Click(object sender, RoutedEventArgs e)
+        {
+            renderData.CameraPosition[0] = renderData.CameraPosition[0] + 1;
+            ReExecuteRenderPipeline();
+        }
+
+        private void Down_Click(object sender, RoutedEventArgs e)
+        {
+            renderData.CameraPosition[1] = renderData.CameraPosition[1] - 1;
+            ReExecuteRenderPipeline();
         }
 
         private Matrix<double> CalculateCameraTransformMatrix()
@@ -195,6 +219,39 @@ namespace Tarea2
             double yDMin = Device.ActualHeight;
 
             return Tuple.Create(xDMin, xDMax, yDMin, yDMax);
+        }
+
+        private void ReExecuteRenderPipeline()
+        {   
+            // Tenemos que volver a calcular la matriz de la camara, porque la posicion cambio
+            cameraTransformMatrix = CalculateCameraTransformMatrix();
+
+            projectedPoints.Clear();
+
+            foreach (Vector<double> pointToRender in renderData.PointsToRender.Values)
+            {
+                Vector<double> tempCameraPoint = TransformWorldPointToCameraPoint(pointToRender);
+                Vector<double> tempProjectedPoint = ProjectCameraPoint(tempCameraPoint);
+
+                projectedPoints.Add(tempProjectedPoint);
+            }
+
+            if (projectedPoints.Count > 0)
+            {
+                Device.Children.Clear();
+
+                foreach (Vector<double> projectedPoint in projectedPoints)
+                {
+                    var (x, y) = GetDevicePointFromProjection(projectedPoint);
+
+                    Rectangle pixelToDraw = new Rectangle { Fill = Brushes.White, Width = 1, Height = 1 };
+
+                    Canvas.SetLeft(pixelToDraw, x); Canvas.SetTop(pixelToDraw, y);
+
+                    Device.Children.Add(pixelToDraw);
+                }
+
+            }
         }
     }
 }
