@@ -14,6 +14,17 @@ namespace Tarea2.Classes
         public Vector<double> UDirectorVector { get; set; }
         public Vector<double> WDirectionVector { get; set; }
         public Vector<double> VDirectionVector { get; set; }
+        
+        public double f;
+        public double w;
+        public double h;
+        public double l;
+        public double c;
+
+        public double xPMin;
+        public double xPMax;
+        public double yPMin;
+        public double yPmax;
     }
 
     public class VectorJsonConverter : JsonConverter<Vector<double>>

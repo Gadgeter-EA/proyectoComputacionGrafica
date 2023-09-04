@@ -1,10 +1,22 @@
 {
-  "CameraPosition": [ 1.0, 2.0, 3.0 ],
+  "CameraPosition": [ 1.0, 1.0, 1.0 ],
   "PointsToRender": {
-    "1": [ 0, 2.0, 0 ],
-    "2": [ 2.0, 2.0, -10 ]
+    "1": [ 2.0, 2.0, -10.0 ],
+    "2": [ 1.0, 1.0, 0.0 ]
   },
-  "UDirectorVector": [ -0.94, 0, 0.31 ],
-  "VDirectionVector": [ 0, 1, 0 ],
-  "WDirectionVector": [ 0.31, 0, 0.94 ]
+
+  "UDirectorVector": [ 1.0, 0.0, 0.0 ],
+  "VDirectionVector": [ 0.0, 1, 0.0 ],
+  "WDirectionVector": [ 0.0, 0.0, 1 ],
+
+  "f": 1,
+  "w": 1,
+  "h": 1,
+  "l": 20,
+  "c": 5,
+
+  "xPMin": -1,
+  "xPMax": 1,
+  "yPmin": -1,
+  "YPmax":  1
 }

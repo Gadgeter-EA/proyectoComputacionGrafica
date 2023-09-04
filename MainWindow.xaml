@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Tarea2"
         mc:Ignorable="d"
-        Title="Tarea2" Height="1000" Width="1000">
-    <Canvas Background="Black">
+        Title="Tarea2" Height="1000" Width="1000" Loaded="Window_Loaded">
+    <Canvas x:Name="Device" Background="Black" Height="950" Width="950">
         
     </Canvas>
 </Window>
