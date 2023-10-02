@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Tarea2.Classes;
 using MathNet.Numerics.LinearAlgebra;
@@ -33,14 +26,16 @@ namespace Tarea2
         double yDMax;
         double yDMin;
 
-        List<Vector<double>> projectedPoints = new List<Vector<double>> { };
+        List<Vector<double>> projectedPoints = new List<Vector<double>>();
+
+        Dictionary<string, Vector<double>> drewPoints = new Dictionary<string, Vector<double>>();
 
         public MainWindow()
         {
             InitializeComponent();
             try
             {
-                renderData = LoatDataFromJson.LoadRenderDataFromJson("C:\\Users\\WINDOWS11\\Documents\\Apuntes IAV 7 Semestre\\ComputacionGrafica\\Tarea2\\drawConfig.json");
+                renderData = LoatDataFromJson.LoadRenderDataFromJson("C:\\Users\\WINDOWS11\\Documents\\Apuntes IAV 7 Semestre\\ComputacionGrafica\\proyectoComputacionGrafica\\drawConfig.json");
             }
             catch
             {
@@ -76,6 +71,7 @@ namespace Tarea2
 
            if (projectedPoints.Count > 0)
            {
+                int i = 1;
                 foreach (Vector<double> projectedPoint in projectedPoints) 
                 {
                     var (x, y) = GetDevicePointFromProjection(projectedPoint);
@@ -85,9 +81,16 @@ namespace Tarea2
                     Canvas.SetLeft(pixelToDraw, x); Canvas.SetTop(pixelToDraw, y);
 
                     Device.Children.Add(pixelToDraw);
+
+                    Vector<double> tempDrewPoint = Vector<double>.Build.DenseOfArray(new double[] {x, y});
+                    drewPoints.Add(i.ToString(), tempDrewPoint);
+                    i++;
                 }
                 
            }
+
+           DrawAllLines();
+           FillAllTriangles();
         }
 
         private void Up_Click(object sender, RoutedEventArgs e)
@@ -209,6 +212,128 @@ namespace Tarea2
             return Tuple.Create((int)xD, (int)yD);
         }
 
+        private void DrawLine(Vector<double> pointFrom, Vector<double> pointTo)
+        {
+            // Lo convertimos a int para evitar decimales
+            var (x1, y1) = ((int)pointFrom[0], (int)pointFrom[1]);
+            var (x2, y2) = ((int)pointTo[0], (int)pointTo[1]);
+
+            // Calculamos mx y my
+            int mx = x2 - x1;
+            int my = y2 - y1;
+
+            // Elejimos la "s", lo creamos como double para que al calcular los deltas no se coma decimales
+            double s = Math.Max(Math.Abs(mx), Math.Abs(my));
+            
+            double deltaX = mx / s;
+            double deltaY = my / s;
+
+            double lastBx = x1;
+            double lastBy = y1;
+            // Pintamos la linea las veces que lo indique "s", lo usamos en int para evitar problemas
+            for (int i = 0; i < (int)s; i++)
+            {
+                lastBx = lastBx + deltaX;
+                lastBy = lastBy + deltaY;
+
+                Rectangle pixelToDraw = new Rectangle { Fill = Brushes.White, Width = 1, Height = 1 };
+
+                int newX = (int)Math.Round(lastBx);
+                int newY = (int)Math.Round(lastBy);
+
+                Canvas.SetLeft(pixelToDraw, newX); Canvas.SetTop(pixelToDraw, newY);
+
+                Device.Children.Add(pixelToDraw);
+            }
+        }
+
+        private void FillTriangle(Vector<double> point1, Vector<double> point2, Vector<double> point3)
+        {
+            // Buscamos cual es el punto mas arriba en coordenadas de Y, esto facilita el algoritmo, pues pintamos de arriba hacia abajo
+            // Lo nos ayuda facilita calcular la interpolacion para la linea a dibujar, y por lo tanto nos aseguramos que todo el triangulo se rellene
+            List<Vector<double>> points = new List<Vector<double>> { point1, point2, point3 };
+            points.Sort((a, b) => a[1].CompareTo(b[1]));
+
+            Vector<double> topPoint = points[0];
+            Vector<double> middlePoint = points[1];
+            Vector<double> bottomPoint = points[2];
+
+            // Rellenamos el triangulo
+            for (int y = (int)topPoint[1]; y <= (int)bottomPoint[1]; y++)
+            {
+                // Interpolamos para conocer el valor de X
+                if (y < middlePoint[1])
+                {
+                    DrawLine(Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], middlePoint[0], y, topPoint[1], middlePoint[1]), y }),
+                              Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], bottomPoint[0], y, topPoint[1], bottomPoint[1]), y }));
+                }
+                else
+                {
+                    DrawLine(Vector<double>.Build.DenseOfArray(new double[] { Interpolate(middlePoint[0], bottomPoint[0], y, middlePoint[1], bottomPoint[1]), y }),
+                              Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], bottomPoint[0], y, topPoint[1], bottomPoint[1]), y }));
+                }
+            }
+        }
+
+        private double Interpolate(double x1, double x2, double y, double y1, double y2)
+        {
+            if (y1 == y2) return x1;
+            return ((y - y1) / (y2 - y1)) * (x2 - x1) + x1;
+        }
+
+        private void DrawAllLines()
+        {
+            // ESTOS PUNTOS ESTAN HARDCODEADOS
+            // Cara inferior
+            DrawLine(drewPoints["1"], drewPoints["2"]);
+            DrawLine(drewPoints["1"], drewPoints["8"]);
+            DrawLine(drewPoints["2"], drewPoints["7"]);
+            DrawLine(drewPoints["7"], drewPoints["8"]);
+
+            // Cara superior
+            DrawLine(drewPoints["3"], drewPoints["4"]);
+            DrawLine(drewPoints["3"], drewPoints["6"]);
+            DrawLine(drewPoints["5"], drewPoints["4"]);
+            DrawLine(drewPoints["5"], drewPoints["6"]);
+
+            // Cara Frontal
+            DrawLine(drewPoints["1"], drewPoints["3"]);
+            DrawLine(drewPoints["8"], drewPoints["6"]);
+
+            // Cara Trasera
+            DrawLine(drewPoints["2"], drewPoints["4"]);
+            DrawLine(drewPoints["7"], drewPoints["5"]);
+        }
+
+        private void FillAllTriangles()
+        {
+            // IGUAL TRIANGULOS HARCODEADOS, SON UN TOTAL DE 12
+
+            // Triangulos de atras
+            FillTriangle(drewPoints["2"], drewPoints["4"], drewPoints["5"]);
+            FillTriangle(drewPoints["2"], drewPoints["7"], drewPoints["5"]);
+
+            // Parte delantera
+            FillTriangle(drewPoints["1"], drewPoints["8"], drewPoints["6"]);
+            FillTriangle(drewPoints["1"], drewPoints["3"], drewPoints["6"]);
+
+            // Parte arriba
+            FillTriangle(drewPoints["3"], drewPoints["4"], drewPoints["5"]);
+            FillTriangle(drewPoints["3"], drewPoints["6"], drewPoints["5"]);
+
+            // Parte abajo
+            FillTriangle(drewPoints["1"], drewPoints["2"], drewPoints["7"]);
+            FillTriangle(drewPoints["1"], drewPoints["8"], drewPoints["7"]);
+
+            // Parte derecha
+            FillTriangle(drewPoints["7"], drewPoints["5"], drewPoints["6"]);
+            FillTriangle(drewPoints["7"], drewPoints["8"], drewPoints["6"]);
+
+            // Parte Izquierda
+            FillTriangle(drewPoints["2"], drewPoints["4"], drewPoints["3"]);
+            FillTriangle(drewPoints["2"], drewPoints["1"], drewPoints["3"]);
+        }
+
         private Tuple<double, double, double, double> GetCanvasSize()
         {
             double xDMax = Device.ActualWidth;
@@ -239,7 +364,9 @@ namespace Tarea2
             if (projectedPoints.Count > 0)
             {
                 Device.Children.Clear();
+                drewPoints.Clear();
 
+                int i = 1;
                 foreach (Vector<double> projectedPoint in projectedPoints)
                 {
                     var (x, y) = GetDevicePointFromProjection(projectedPoint);
@@ -249,9 +376,15 @@ namespace Tarea2
                     Canvas.SetLeft(pixelToDraw, x); Canvas.SetTop(pixelToDraw, y);
 
                     Device.Children.Add(pixelToDraw);
-                }
 
+                    Vector<double> tempDrewPoint = Vector<double>.Build.DenseOfArray(new double[] { x, y });
+                    drewPoints.Add(i.ToString(), tempDrewPoint);
+                    i++;
+                }
             }
+
+            DrawAllLines();
+            FillAllTriangles();
         }
     }
 }
