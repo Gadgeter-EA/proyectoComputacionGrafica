@@ -25,6 +25,20 @@ namespace Tarea2.Classes
         public double xPMax;
         public double yPMin;
         public double yPmax;
+
+        public Vector<double> FrontNormalVector { get; set; }
+        public Vector<double> BackNormalVector { get; set; }
+        public Vector<double> LeftNormalVector { get; set; }
+        public Vector<double> RightNormalVector { get; set; }
+        public Vector<double> TopNormalVector { get; set; }
+        public Vector<double> BottomNormalVector { get; set; }
+
+        public double kAmbient;
+        public double kDiffuse;
+        public double kSpecular;
+        public double sForSpecular;
+
+        public Vector<double> lightOrigin { get; set; }
     }
 
     public class VectorJsonConverter : JsonConverter<Vector<double>>

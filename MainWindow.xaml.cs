@@ -30,6 +30,9 @@ namespace Tarea2
 
         Dictionary<string, Vector<double>> drewPoints = new Dictionary<string, Vector<double>>();
 
+        Vector<double> renderColor = Vector<double>.Build.DenseOfArray(new double[] { 255, 255, 255 });
+        Vector<double> ambientLight;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -61,6 +64,8 @@ namespace Tarea2
 
                 projectedPoints.Add(tempProjectedPoint);
             }
+
+            ambientLight = CalculateAmbientLight();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -89,7 +94,7 @@ namespace Tarea2
                 
            }
 
-           DrawAllLines();
+           //DrawAllLines();
            FillAllTriangles();
         }
 
@@ -212,7 +217,7 @@ namespace Tarea2
             return Tuple.Create((int)xD, (int)yD);
         }
 
-        private void DrawLine(Vector<double> pointFrom, Vector<double> pointTo)
+        private void DrawLine(Vector<double> pointFrom, Vector<double> pointTo, Vector<double> point3D1, Vector<double> point3D2, Vector<double> point3D3, Vector<double> point2D1, Vector<double> point2D2, Vector<double> point2D3, Vector<double> normalForLight)
         {
             // Lo convertimos a int para evitar decimales
             var (x1, y1) = ((int)pointFrom[0], (int)pointFrom[1]);
@@ -236,10 +241,19 @@ namespace Tarea2
                 lastBx = lastBx + deltaX;
                 lastBy = lastBy + deltaY;
 
-                Rectangle pixelToDraw = new Rectangle { Fill = Brushes.White, Width = 1, Height = 1 };
-
                 int newX = (int)Math.Round(lastBx);
                 int newY = (int)Math.Round(lastBy);
+
+                Vector<double> temp2DPoint = Vector<double>.Build.DenseOfArray(new double[] { newX, newY });
+                Vector<double> temp3DPoint = Interpolate3D(point3D1, point3D2, point3D3, temp2DPoint, point2D1, point2D2, point2D3);
+
+                Vector<double> diffuseLightIntensity = CalculateDiffuseLight(temp3DPoint, normalForLight);
+                Vector<double> specularLightIntensity = CalculateSpecularLight(temp3DPoint, normalForLight);
+
+                var (R, G, B) = CalculateTotalLightItensity(diffuseLightIntensity, specularLightIntensity);
+
+                var brush = new SolidColorBrush(Color.FromRgb((byte)R, (byte)G, (byte)B));
+                Rectangle pixelToDraw = new Rectangle { Fill = brush, Width = 1, Height = 1 };
 
                 Canvas.SetLeft(pixelToDraw, newX); Canvas.SetTop(pixelToDraw, newY);
 
@@ -247,8 +261,16 @@ namespace Tarea2
             }
         }
 
-        private void FillTriangle(Vector<double> point1, Vector<double> point2, Vector<double> point3)
+        private void FillTriangle(string pointKey1, string pointKey2, string pointKey3, Vector<double> normalForLight)
         {
+            Vector<double> point1 = drewPoints[pointKey1];
+            Vector<double> point2 = drewPoints[pointKey2];
+            Vector<double> point3 = drewPoints[pointKey3];
+
+            Vector<double> point3D1 = renderData.PointsToRender[pointKey1];
+            Vector<double> point3D2 = renderData.PointsToRender[pointKey2];
+            Vector<double> point3D3 = renderData.PointsToRender[pointKey3];
+
             // Buscamos cual es el punto mas arriba en coordenadas de Y, esto facilita el algoritmo, pues pintamos de arriba hacia abajo
             // Lo nos ayuda facilita calcular la interpolacion para la linea a dibujar, y por lo tanto nos aseguramos que todo el triangulo se rellene
             List<Vector<double>> points = new List<Vector<double>> { point1, point2, point3 };
@@ -264,13 +286,17 @@ namespace Tarea2
                 // Interpolamos para conocer el valor de X
                 if (y < middlePoint[1])
                 {
-                    DrawLine(Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], middlePoint[0], y, topPoint[1], middlePoint[1]), y }),
-                              Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], bottomPoint[0], y, topPoint[1], bottomPoint[1]), y }));
+                    Vector<double> startPoint = Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], middlePoint[0], y, topPoint[1], middlePoint[1]), y });
+                    Vector<double> endPoint = Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], bottomPoint[0], y, topPoint[1], bottomPoint[1]), y });
+
+                    DrawLine(startPoint, endPoint, point3D1, point3D2, point3D3, point1, point2, point3, normalForLight);
                 }
                 else
                 {
-                    DrawLine(Vector<double>.Build.DenseOfArray(new double[] { Interpolate(middlePoint[0], bottomPoint[0], y, middlePoint[1], bottomPoint[1]), y }),
-                              Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], bottomPoint[0], y, topPoint[1], bottomPoint[1]), y }));
+                    Vector<double> startPoint = Vector<double>.Build.DenseOfArray(new double[] { Interpolate(middlePoint[0], bottomPoint[0], y, middlePoint[1], bottomPoint[1]), y });
+                    Vector<double> endPoint = Vector<double>.Build.DenseOfArray(new double[] { Interpolate(topPoint[0], bottomPoint[0], y, topPoint[1], bottomPoint[1]), y });
+
+                    DrawLine(startPoint, endPoint, point3D1, point3D2, point3D3, point1, point2, point3, normalForLight);
                 }
             }
         }
@@ -280,29 +306,51 @@ namespace Tarea2
             if (y1 == y2) return x1;
             return ((y - y1) / (y2 - y1)) * (x2 - x1) + x1;
         }
-
-        private void DrawAllLines()
+        private Vector<double> Interpolate3D(Vector<double> point3D1, Vector<double> point3D2, Vector<double> point3D3, Vector<double> knownPoint2D, Vector<double> point2D1, Vector<double> point2D2, Vector<double> point2D3)
         {
-            // ESTOS PUNTOS ESTAN HARDCODEADOS
-            // Cara inferior
-            DrawLine(drewPoints["1"], drewPoints["2"]);
-            DrawLine(drewPoints["1"], drewPoints["8"]);
-            DrawLine(drewPoints["2"], drewPoints["7"]);
-            DrawLine(drewPoints["7"], drewPoints["8"]);
+            double w1 = ((point2D2[1] - point2D3[1]) * (knownPoint2D[0] - point2D3[0]) + (point2D3[0] - point2D2[0]) * (knownPoint2D[1] - point2D3[1])) /
+                        ((point2D2[1] - point2D3[1]) * (point2D1[0] - point2D3[0]) + (point2D3[0] - point2D2[0]) * (point2D1[1] - point2D3[1]));
 
-            // Cara superior
-            DrawLine(drewPoints["3"], drewPoints["4"]);
-            DrawLine(drewPoints["3"], drewPoints["6"]);
-            DrawLine(drewPoints["5"], drewPoints["4"]);
-            DrawLine(drewPoints["5"], drewPoints["6"]);
+            double w2 = ((point2D3[1] - point2D1[1]) * (knownPoint2D[0] - point2D3[0]) + (point2D1[0] - point2D3[0]) * (knownPoint2D[1] - point2D3[1])) /
+                        ((point2D2[1] - point2D3[1]) * (point2D1[0] - point2D3[0]) + (point2D3[0] - point2D2[0]) * (point2D1[1] - point2D3[1]));
 
-            // Cara Frontal
-            DrawLine(drewPoints["1"], drewPoints["3"]);
-            DrawLine(drewPoints["8"], drewPoints["6"]);
+            double w3 = 1 - w1 - w2;
 
-            // Cara Trasera
-            DrawLine(drewPoints["2"], drewPoints["4"]);
-            DrawLine(drewPoints["7"], drewPoints["5"]);
+            return w1 * point3D1 + w2 * point3D2 + w3 * point3D3;
+        }
+
+        Vector<double> CalculateAmbientLight()
+        {
+            return renderColor.Multiply(renderData.kAmbient);
+        }
+
+        Vector<double> CalculateDiffuseLight(Vector<double> world3DPoint, Vector<double> normal)
+        {
+            // Usamos 2 en la normalizacion para usar el metodo visto en clase
+            Vector<double> lightDirectionVector = (renderData.lightOrigin - world3DPoint).Normalize(2);
+
+            double deffuseLightValue = renderData.kDiffuse * Math.Max(0, lightDirectionVector.DotProduct(normal));
+
+            return renderColor.Multiply(deffuseLightValue);
+        }
+
+        Vector<double> CalculateSpecularLight(Vector<double> world3DPoint, Vector<double> normal)
+        {
+            Vector<double> lightDirectionVector = (renderData.lightOrigin - world3DPoint).Normalize(2);
+            Vector<double> vVector = (renderData.CameraPosition - world3DPoint).Normalize(2);
+
+            Vector<double> rVector = (normal.Multiply(lightDirectionVector.DotProduct(normal) * 2) - lightDirectionVector).Normalize(2);
+
+            double specularLightValue = renderData.kSpecular * Math.Pow(rVector.DotProduct(vVector), renderData.sForSpecular);
+
+            return renderColor.Multiply(specularLightValue);
+        }
+
+        Tuple<int, int, int> CalculateTotalLightItensity(Vector<double> diffuseLightIntensity, Vector<double> specularLightIntensity)
+        {
+            Vector<double> totalLightIntensity = ambientLight + diffuseLightIntensity + specularLightIntensity;
+
+            return Tuple.Create((int)Math.Round(totalLightIntensity[0]), (int)Math.Round(totalLightIntensity[1]), (int)Math.Round(totalLightIntensity[2]));
         }
 
         private void FillAllTriangles()
@@ -310,28 +358,28 @@ namespace Tarea2
             // IGUAL TRIANGULOS HARCODEADOS, SON UN TOTAL DE 12
 
             // Triangulos de atras
-            FillTriangle(drewPoints["2"], drewPoints["4"], drewPoints["5"]);
-            FillTriangle(drewPoints["2"], drewPoints["7"], drewPoints["5"]);
+            FillTriangle("2", "4", "5", renderData.BackNormalVector);
+            FillTriangle("2", "7", "5", renderData.BackNormalVector);
 
             // Parte delantera
-            FillTriangle(drewPoints["1"], drewPoints["8"], drewPoints["6"]);
-            FillTriangle(drewPoints["1"], drewPoints["3"], drewPoints["6"]);
+            FillTriangle("1", "8", "6", renderData.FrontNormalVector);
+            FillTriangle("1", "3", "6", renderData.FrontNormalVector);
 
             // Parte arriba
-            FillTriangle(drewPoints["3"], drewPoints["4"], drewPoints["5"]);
-            FillTriangle(drewPoints["3"], drewPoints["6"], drewPoints["5"]);
+            FillTriangle("3", "4", "5", renderData.TopNormalVector);
+            FillTriangle("3", "6", "5", renderData.TopNormalVector);
 
             // Parte abajo
-            FillTriangle(drewPoints["1"], drewPoints["2"], drewPoints["7"]);
-            FillTriangle(drewPoints["1"], drewPoints["8"], drewPoints["7"]);
+            FillTriangle("1", "2", "7", renderData.BottomNormalVector);
+            FillTriangle("1", "8", "7", renderData.BottomNormalVector);
 
             // Parte derecha
-            FillTriangle(drewPoints["7"], drewPoints["5"], drewPoints["6"]);
-            FillTriangle(drewPoints["7"], drewPoints["8"], drewPoints["6"]);
+            FillTriangle("7", "5", "6", renderData.RightNormalVector);
+            FillTriangle("7", "8", "6", renderData.RightNormalVector);
 
             // Parte Izquierda
-            FillTriangle(drewPoints["2"], drewPoints["4"], drewPoints["3"]);
-            FillTriangle(drewPoints["2"], drewPoints["1"], drewPoints["3"]);
+            FillTriangle("2", "4", "3", renderData.LeftNormalVector);
+            FillTriangle("2", "1", "3", renderData.LeftNormalVector);
         }
 
         private Tuple<double, double, double, double> GetCanvasSize()
@@ -383,7 +431,7 @@ namespace Tarea2
                 }
             }
 
-            DrawAllLines();
+            // DrawAllLines();
             FillAllTriangles();
         }
     }

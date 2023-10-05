@@ -24,5 +24,19 @@
   "xPMin": -1,
   "xPMax": 1,
   "yPmin": -1,
-  "YPmax":  1
+  "YPmax": 1,
+
+  "FrontNormalVector": [ 0.0, 0.0, 1.0 ],
+  "BackNormalVector": [ 0.0, 0, -1.0 ],
+  "LeftNormalVector": [ -1.0, 0, 0 ],
+  "RightNormalVector": [ 1, 0, 0 ],
+  "TopNormalVector": [ 0, 0, 1 ],
+  "BottomNormalVector": [ 0, 0, -1 ],
+
+  "kAmbient": 0.2,
+  "kDiffuse": 0.5,
+  "kSpecular": 0.3,
+  "sForSpecular": 2,
+
+  "lightOrigin": [ 0, 0.70, -0.70 ]
 }
